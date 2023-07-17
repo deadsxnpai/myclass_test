@@ -1,0 +1,23 @@
+{
+  "name": "myclass_test",
+  "version": "1.0.0",
+  "description": "my class test task",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deadsxnpai/myclass_test.git"
+  },
+  "keywords": [
+    "test",
+    "task"
+  ],
+  "author": "Daniil Klyuchnikov",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/deadsxnpai/myclass_test/issues"
+  },
+  "homepage": "https://github.com/deadsxnpai/myclass_test#readme"
+}

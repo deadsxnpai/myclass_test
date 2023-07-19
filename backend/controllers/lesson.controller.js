@@ -148,14 +148,14 @@ class LessonCotroller {
         let maxLessons = MAX_LESSONS;
         if (lastDate && firstDate) {
             const dateDiff = Math.ceil((lastDate - firstDate) / (1000 * 60 * 60 * 24 * 365));
-            maxLessons = Math.min(maxLessons, dateDiff + 1);
+            maxLessons = Math.min(maxLessons, dateDiff + 7);
         } else {
             maxLessons = Math.min(maxLessons, MAX_DAYS);
         }
-
+        
         // Рассчет фактического количества уроков для создания
         const numLessons = Math.min(lessonsCount || maxLessons, maxLessons);
-        
+        console.log(numLessons)
         try {
             // PostgreSQL client transaction
            
@@ -169,13 +169,9 @@ class LessonCotroller {
         
             while (lessonCounter < numLessons) {
                 const day = currentDate.getDay();
-                console.log(day)
-                // if (day <= lastDate.getDay()){
-                //     break;
-                // }
                 const dayNames = [0, 1, 2, 3, 4, 5, 6];
                 let currentDay = dayNames[day]
-
+                console.log(days)
                 if (days.includes(currentDay)) {
                 const lesson = {
                     teacherIds: teacherIds,
@@ -188,7 +184,7 @@ class LessonCotroller {
 
                 currentDate.setDate(currentDate.getDate() + 1);
             }
-            console.log(lessonCounter)
+
             for (const lesson of createdLessons) {
                 const query = {
                     text: 'INSERT INTO lessons (title, date) VALUES ($1, $2)',

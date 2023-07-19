@@ -148,7 +148,6 @@ class LessonCotroller {
         let maxLessons = MAX_LESSONS;
         if (lastDate && firstDate) {
             const dateDiff = Math.ceil((lastDate - firstDate) / (1000 * 60 * 60 * 24));
-            console.log(dateDiff)
             maxLessons = Math.min(maxLessons, dateDiff + 1);
         } else {
             maxLessons = Math.min(maxLessons, MAX_DAYS);
@@ -156,12 +155,11 @@ class LessonCotroller {
         
         // Рассчет фактического количества уроков для создания
         const numLessons = Math.min(lessonsCount || maxLessons, maxLessons);
-        console.log(numLessons)
+
         try {
             // PostgreSQL client transaction
            
             await client.query('BEGIN');
-            
 
             // Generate lessons
             const createdLessons = [];
@@ -170,12 +168,14 @@ class LessonCotroller {
         
             while (lessonCounter < numLessons) {
                 const day = currentDate.getDay();
+                if (currentDate>lastDate){
+                    break;
+                }
                 const dayNames = [0, 1, 2, 3, 4, 5, 6];
                 let currentDay = dayNames[day]
 
                 if (days.includes(currentDay)) {
                 const lesson = {
-                    teacherIds: teacherIds,
                     title: title,
                     date: currentDate.toISOString().split('T')[0],
                 };
@@ -196,9 +196,9 @@ class LessonCotroller {
             await client.query('COMMIT');
             client.release();
 
-         
+    
             res.json({ 
-                    lessons: createdLessons
+                lessons: createdLessons
              });
          
 

@@ -136,13 +136,11 @@ class LessonCotroller {
             return res.status(400).json({ error: validationError });
         }
 
-        const teacherIds = data.teacherIds.map(Number);
         const title = data.title;
         const days = data.days.map(Number);
         const firstDate = new Date(data.firstDate);
         const lessonsCount = data.lessonsCount;
         const lastDate = data.lastDate ? new Date(data.lastDate) : null;
-        const ids = []
 
         // Рассчет максимального количества занятий на основе диапазона дат
         let maxLessons = MAX_LESSONS;
@@ -185,24 +183,22 @@ class LessonCotroller {
 
                 currentDate.setDate(currentDate.getDate() + 1);
             }
-            let result;
+            let result = [];
             for (const lesson of createdLessons) {
                 const query = {
-                    text: 'INSERT INTO lessons (title, date) VALUES ($1, $2)',
+                    text: 'INSERT INTO lessons (title, date) VALUES ($1, $2) RETURNING id',
                     values: [lesson.title, lesson.date],
                 };
-                const select = {
-                    text: 'select id from lessons where date=$1 and title=$2',
-                    values: [lesson.date, lesson.title],
-                };
-                await client.query(query);
-                result = await client.query(select);
-                
+                result.push(await client.query(query)); 
             }
             await client.query('COMMIT');
-
+            const arrayOfIds = [];
+            for (let i = 0; i< result.length;i++){
+                arrayOfIds.push(result[i].rows)
+            }
+           
             res.json({ 
-                ids:result.rows
+                ids:arrayOfIds
              });
 
              client.release();

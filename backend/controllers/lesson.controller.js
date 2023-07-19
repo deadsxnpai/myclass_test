@@ -138,7 +138,7 @@ class LessonCotroller {
 
         const teacherIds = data.teacherIds.map(Number);
         const title = data.title;
-        const days = data.days;
+        const days = data.days.map(Number);
         const firstDate = new Date(data.firstDate);
         const lessonsCount = data.lessonsCount;
         const lastDate = data.lastDate ? new Date(data.lastDate) : null;
@@ -169,9 +169,10 @@ class LessonCotroller {
         
             while (lessonCounter < numLessons) {
                 const day = currentDate.getDay();
-                if (day > lastDate.getDay()){
-                    break;
-                }
+                console.log(day)
+                // if (day <= lastDate.getDay()){
+                //     break;
+                // }
                 const dayNames = [0, 1, 2, 3, 4, 5, 6];
                 let currentDay = dayNames[day]
 
@@ -187,7 +188,7 @@ class LessonCotroller {
 
                 currentDate.setDate(currentDate.getDate() + 1);
             }
-
+            console.log(lessonCounter)
             for (const lesson of createdLessons) {
                 const query = {
                     text: 'INSERT INTO lessons (title, date) VALUES ($1, $2)',
@@ -195,34 +196,15 @@ class LessonCotroller {
                 };
                 await client.query(query);
             }
-
             await client.query('COMMIT');
-
-            for (const lesson of createdLessons){
-                const selectQuery = {
-                    text: 'select id from lessons where title=$1 AND date=$2',
-                    values: [lesson.title, lesson.date],
-                };
-                const result = await client.query(selectQuery);
-                ids.push(result)
-            }
-            
-            const formattedLessons = await Promise.all(createdLessons.map(async (lesson) => {
-                return {
-                    title: lesson.title,
-                };
-                }));
-            if(ids[0]){
-                res.json({ 
-                    id: ids['0'].rows,
-                    lessons: formattedLessons
-                });
-            } else {
-                res.json({ 
-                    id: ids,
-                });
-            }
             client.release();
+
+         
+            res.json({ 
+                    id: ids,
+                    lessons: createdLessons
+             });
+         
 
         } catch (error) {
             await client.query('ROLLBACK');
@@ -241,7 +223,7 @@ function validateInput(data) {
     if (!data.title || typeof data.title !== 'string') {
         return "Invalid or missing 'title' parameter";
     }
-    if (!data.days.map(Number) || !Array.isArray(data.days.map(Number))) {
+    if (!data.days || !Array.isArray(data.days)) {
         return "Invalid or missing 'days' parameter";
     }
     if (!data.firstDate || typeof data.firstDate !== 'string') {

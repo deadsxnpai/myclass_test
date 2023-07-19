@@ -44,7 +44,7 @@ class LessonCotroller {
                     whereClause += 'status = ?';
                     values.push(parseInt(status));
             }
-            if (status !== undefined && (status !== '0' || status !== '1')){
+            if (status !== undefined && !(status === '0' || status === '1')){
                 throw new Error('Invalid status parameter');
             }
 

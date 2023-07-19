@@ -45,78 +45,78 @@ class LessonCotroller {
                     values.push(parseInt(status));
             }
 
-        if (teacherIds) {
-            const teacherIdsArr = teacherIds.split(',');
-        if (teacherIdsArr.length > 0) {
-            if (whereClause) whereClause += ' AND ';
-                whereClause += 'id IN (SELECT DISTINCT lesson_id FROM lesson_teachers WHERE teacher_id IN (?))';
-                values.push(teacherIdsArr);
+            if (teacherIds) {
+                const teacherIdsArr = teacherIds.split(',');
+            if (teacherIdsArr.length > 0) {
+                if (whereClause) whereClause += ' AND ';
+                    whereClause += 'id IN (SELECT DISTINCT lesson_id FROM lesson_teachers WHERE teacher_id IN (?))';
+                    values.push(teacherIdsArr);
             }
-        }
+            }
 
-        if (studentsCount) {
-            const studentsCountArr = studentsCount.split(',');
-        if (studentsCountArr.length === 1) {
-            if (whereClause) whereClause += ' AND ';
-                whereClause += 'id IN (SELECT DISTINCT lesson_id FROM lesson_students WHERE visit = true GROUP BY lesson_id HAVING COUNT(*) = ?)';
-                values.push(parseInt(studentsCountArr[0]));
-        } else if (studentsCountArr.length === 2) {
-            if (whereClause) whereClause += ' AND ';
-                whereClause += 'id IN (SELECT DISTINCT lesson_id FROM lesson_students WHERE visit = true GROUP BY lesson_id HAVING COUNT(*) BETWEEN ? AND ?)';
-                values.push(parseInt(studentsCountArr[0]), parseInt(studentsCountArr[1]));
-        } else {
-            throw new Error('Invalid studentsCount parameter');
-        }
-        }
+            if (studentsCount) {
+                const studentsCountArr = studentsCount.split(',');
+            if (studentsCountArr.length === 1) {
+                if (whereClause) whereClause += ' AND ';
+                    whereClause += 'id IN (SELECT DISTINCT lesson_id FROM lesson_students WHERE visit = true GROUP BY lesson_id HAVING COUNT(*) = ?)';
+                    values.push(parseInt(studentsCountArr[0]));
+            } else if (studentsCountArr.length === 2) {
+                if (whereClause) whereClause += ' AND ';
+                    whereClause += 'id IN (SELECT DISTINCT lesson_id FROM lesson_students WHERE visit = true GROUP BY lesson_id HAVING COUNT(*) BETWEEN ? AND ?)';
+                    values.push(parseInt(studentsCountArr[0]), parseInt(studentsCountArr[1]));
+            } else {
+                throw new Error('Invalid studentsCount parameter');
+            }
+            }
 
-         // Подсчет общего количества уроков на основе фильтров
-        const countQuery = knex('lessons').whereRaw(whereClause, values).countDistinct('id as totalCount');
-        const [{ totalCount }] = await countQuery;
+             // Подсчет общего количества уроков на основе фильтров
+            const countQuery = knex('lessons').whereRaw(whereClause, values).countDistinct('id as totalCount');
+            const [{ totalCount }] = await countQuery;
 
-        // Получение уроков с пагинацией на основе фильтров
-        const lessonsQuery = knex('lessons')
-        .whereRaw(whereClause, values)
-        .orderBy('date', 'asc')
-        .offset((pageNumber - 1) * lessonsPerPageNumber)
-        .limit(lessonsPerPageNumber);
+            // Получение уроков с пагинацией на основе фильтров
+            const lessonsQuery = knex('lessons')
+            .whereRaw(whereClause, values)
+            .orderBy('date', 'asc')
+            .offset((pageNumber - 1) * lessonsPerPageNumber)
+            .limit(lessonsPerPageNumber);
 
-        const lessons = await lessonsQuery;
+            const lessons = await lessonsQuery;
 
         // Форматирование ответа
-        const formattedLessons = await Promise.all(lessons.map(async (lesson) => {
-        const teachers = await knex('teachers')
-            .select('id', 'name')
-            .join('lesson_teachers', 'teachers.id', '=', 'lesson_teachers.teacher_id')
-            .where('lesson_teachers.lesson_id', lesson.id);
+            const formattedLessons = await Promise.all(lessons.map(async (lesson) => {
+            const teachers = await knex('teachers')
+                .select('id', 'name')
+                .join('lesson_teachers', 'teachers.id', '=', 'lesson_teachers.teacher_id')
+                .where('lesson_teachers.lesson_id', lesson.id);
 
-        const students = await knex('students')
-            .select('id', 'name', 'visit')
-            .join('lesson_students', 'students.id', '=', 'lesson_students.student_id')
-            .where('lesson_students.lesson_id', lesson.id);
+            const students = await knex('students')
+                .select('id', 'name', 'visit')
+                .join('lesson_students', 'students.id', '=', 'lesson_students.student_id')
+                .where('lesson_students.lesson_id', lesson.id);
 
-        const visitCount = students.filter((student) => student.visit).length;
+            const visitCount = students.filter((student) => student.visit).length;
 
-        return {
-            id: lesson.id,
-            date: lesson.date,
-            title: lesson.title,
-            status: lesson.status,
-            visitCount: visitCount,
-            students: students,
-            teachers: teachers,
-        };
-        }));
+            return {
+                id: lesson.id,
+                date: lesson.date,
+                title: lesson.title,
+                status: lesson.status,
+                visitCount: visitCount,
+                students: students,
+                teachers: teachers,
+            };
+            }));
 
-        res.json({
-            lessons: formattedLessons,
-            page: pageNumber,
-            lessonsPerPage: lessonsPerPageNumber,
-            totalCount: totalCount,
-        });
-        } catch (error) {
-            console.error('Error occurred during lesson search:', error.message);
-            res.status(400).json({ error: error.message });
-        }
+            res.json({
+                lessons: formattedLessons,
+                page: pageNumber,
+                lessonsPerPage: lessonsPerPageNumber,
+                totalCount: totalCount,
+            });
+            } catch (error) {
+                console.error('Error occurred during lesson search:', error.message);
+                res.status(400).json({ error: error.message });
+            }
     }
 
     // Задача 2.

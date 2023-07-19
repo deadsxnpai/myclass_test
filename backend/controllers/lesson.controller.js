@@ -46,11 +46,14 @@ class LessonCotroller {
             }
 
             if (teacherIds) {
-                const teacherIdsArr = teacherIds.split(',');
+                const teacherIdsArr = teacherIds.split(',').map(Number)
             if (teacherIdsArr.length > 0) {
-                if (whereClause) whereClause += ' AND ';
-                    whereClause += 'id IN (SELECT DISTINCT lesson_id FROM lesson_teachers WHERE teacher_id IN (?))';
-                    values.push(teacherIdsArr);
+                for (let i = 0; i< teacherIdsArr.length;i++){
+                    if (whereClause) whereClause += ' AND ';
+                        whereClause += 'id IN (SELECT DISTINCT lesson_id FROM lesson_teachers WHERE teacher_id IN (?))';
+                        values.push(teacherIdsArr[i]);
+                        teacherIdsArr.shift(i)
+                }   
             }
             }
 

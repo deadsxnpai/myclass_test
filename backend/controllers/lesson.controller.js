@@ -44,28 +44,32 @@ class LessonCotroller {
                     whereClause += 'status = ?';
                     values.push(parseInt(status));
             }
+            if (status !== undefined && (status !== '0' || status !== '1')){
+                throw new Error('Invalid status parameter');
+            }
 
             if (teacherIds) {
-                const teacherIdsArr = teacherIds.split(',').map(Number)
-            if (teacherIdsArr.length > 0) {
-                for (let i = 0; i< teacherIdsArr.length;i++){
+                const teacherIdsArr = teacherIds.split(',')
+            if (teacherIdsArr.length == 1) {
                     if (whereClause) whereClause += ' AND ';
-                        whereClause += 'id IN (SELECT DISTINCT lesson_id FROM lesson_teachers WHERE teacher_id IN (?))';
-                        values.push(teacherIdsArr[i]);
-                        teacherIdsArr.shift(i)
-                }   
+                    whereClause += 'id IN (SELECT DISTINCT lesson_id FROM lesson_teachers WHERE teacher_id IN (?))';
+                        values.push(parseInt(teacherIdsArr[0]));
+            } else if (teacherIdsArr.length === 2){
+                if (whereClause) whereClause += ' AND ';
+                    whereClause += 'id IN (SELECT DISTINCT lesson_id FROM lesson_teachers WHERE teacher_id IN (?, ?))';
+                        values.push(parseInt(teacherIdsArr[0]),parseInt(teacherIdsArr[1]));
+                }
             }
-            }
-
+    
             if (studentsCount) {
                 const studentsCountArr = studentsCount.split(',');
             if (studentsCountArr.length === 1) {
                 if (whereClause) whereClause += ' AND ';
-                    whereClause += 'id IN (SELECT DISTINCT lesson_id FROM lesson_students WHERE visit = true GROUP BY lesson_id HAVING COUNT(*) = ?)';
+                    whereClause += 'id IN (SELECT DISTINCT lesson_id FROM lesson_students GROUP BY lesson_id HAVING COUNT(*) = ?)';
                     values.push(parseInt(studentsCountArr[0]));
             } else if (studentsCountArr.length === 2) {
                 if (whereClause) whereClause += ' AND ';
-                    whereClause += 'id IN (SELECT DISTINCT lesson_id FROM lesson_students WHERE visit = true GROUP BY lesson_id HAVING COUNT(*) BETWEEN ? AND ?)';
+                    whereClause += 'id IN (SELECT DISTINCT lesson_id FROM lesson_students GROUP BY lesson_id HAVING COUNT(*) BETWEEN ? AND ?)';
                     values.push(parseInt(studentsCountArr[0]), parseInt(studentsCountArr[1]));
             } else {
                 throw new Error('Invalid studentsCount parameter');
@@ -101,7 +105,7 @@ class LessonCotroller {
 
             return {
                 id: lesson.id,
-                date: lesson.date,
+                date: lesson.date.toISOString().split('T')[0],
                 title: lesson.title,
                 status: lesson.status,
                 visitCount: visitCount,
@@ -132,29 +136,31 @@ class LessonCotroller {
             return res.status(400).json({ error: validationError });
         }
 
-        const teacherIds = data.teacherIds;
+        const teacherIds = data.teacherIds.map(Number);
         const title = data.title;
         const days = data.days;
         const firstDate = new Date(data.firstDate);
         const lessonsCount = data.lessonsCount;
         const lastDate = data.lastDate ? new Date(data.lastDate) : null;
+        const ids = []
 
         // Рассчет максимального количества занятий на основе диапазона дат
         let maxLessons = MAX_LESSONS;
         if (lastDate && firstDate) {
-            const dateDiff = Math.ceil((lastDate - firstDate) / (1000 * 60 * 60 * 24));
+            const dateDiff = Math.ceil((lastDate - firstDate) / (1000 * 60 * 60 * 24 * 365));
             maxLessons = Math.min(maxLessons, dateDiff + 1);
         } else {
             maxLessons = Math.min(maxLessons, MAX_DAYS);
         }
+
         // Рассчет фактического количества уроков для создания
         const numLessons = Math.min(lessonsCount || maxLessons, maxLessons);
         
         try {
             // PostgreSQL client transaction
            
-            const result = await client.query('BEGIN');
-            console.log(result)
+            await client.query('BEGIN');
+            
 
             // Generate lessons
             const createdLessons = [];
@@ -162,9 +168,11 @@ class LessonCotroller {
             let lessonCounter = 0;
         
             while (lessonCounter < numLessons) {
-
                 const day = currentDate.getDay();
-                const dayNames = ["0", "1", "2", "3", "4", "5", "6"];
+                if (day > lastDate.getDay()){
+                    break;
+                }
+                const dayNames = [0, 1, 2, 3, 4, 5, 6];
                 let currentDay = dayNames[day]
 
                 if (days.includes(currentDay)) {
@@ -189,8 +197,32 @@ class LessonCotroller {
             }
 
             await client.query('COMMIT');
+
+            for (const lesson of createdLessons){
+                const selectQuery = {
+                    text: 'select id from lessons where title=$1 AND date=$2',
+                    values: [lesson.title, lesson.date],
+                };
+                const result = await client.query(selectQuery);
+                ids.push(result)
+            }
+            
+            const formattedLessons = await Promise.all(createdLessons.map(async (lesson) => {
+                return {
+                    title: lesson.title,
+                };
+                }));
+            if(ids[0]){
+                res.json({ 
+                    id: ids['0'].rows,
+                    lessons: formattedLessons
+                });
+            } else {
+                res.json({ 
+                    id: ids,
+                });
+            }
             client.release();
-            res.json({ lessons: createdLessons });
 
         } catch (error) {
             await client.query('ROLLBACK');
@@ -203,13 +235,13 @@ class LessonCotroller {
 }
 
 function validateInput(data) {
-    if (!data.teacherIds || !Array.isArray(data.teacherIds)) {
+    if (!data.teacherIds.map(Number) || !Array.isArray(data.teacherIds.map(Number))) {
         return "Invalid or missing 'teacherIds' parameter";
     }
     if (!data.title || typeof data.title !== 'string') {
         return "Invalid or missing 'title' parameter";
     }
-    if (!data.days || !Array.isArray(data.days)) {
+    if (!data.days.map(Number) || !Array.isArray(data.days.map(Number))) {
         return "Invalid or missing 'days' parameter";
     }
     if (!data.firstDate || typeof data.firstDate !== 'string') {

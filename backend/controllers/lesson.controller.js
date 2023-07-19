@@ -168,7 +168,7 @@ class LessonCotroller {
             let currentDate = new Date(firstDate);
             let lessonCounter = 0;
         
-            while (lessonCounter < numLessons / 6) {
+            while (lessonCounter < numLessons) {
                 const day = currentDate.getDay();
                 const dayNames = [0, 1, 2, 3, 4, 5, 6];
                 let currentDay = dayNames[day]

@@ -202,7 +202,7 @@ class LessonCotroller {
             await client.query('COMMIT');
 
             res.json({ 
-                ids:result
+                ids:result.rows
              });
 
              client.release();

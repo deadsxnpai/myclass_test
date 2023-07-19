@@ -168,7 +168,7 @@ class LessonCotroller {
         
             while (lessonCounter < numLessons) {
                 const day = currentDate.getDay();
-                if (currentDate>lastDate){
+                if (currentDate > lastDate){
                     break;
                 }
                 const dayNames = [0, 1, 2, 3, 4, 5, 6];
@@ -185,21 +185,27 @@ class LessonCotroller {
 
                 currentDate.setDate(currentDate.getDate() + 1);
             }
-
+            let result;
             for (const lesson of createdLessons) {
                 const query = {
                     text: 'INSERT INTO lessons (title, date) VALUES ($1, $2)',
                     values: [lesson.title, lesson.date],
                 };
+                const select = {
+                    text: 'select id from lessons where date=$1 and title=$2',
+                    values: [lesson.date, lesson.title],
+                };
                 await client.query(query);
+                result = await client.query(select);
+                
             }
             await client.query('COMMIT');
-            client.release();
 
-    
             res.json({ 
-                lessons: createdLessons
+                ids:result
              });
+
+             client.release();
          
 
         } catch (error) {

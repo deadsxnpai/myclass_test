@@ -147,8 +147,9 @@ class LessonCotroller {
         // Рассчет максимального количества занятий на основе диапазона дат
         let maxLessons = MAX_LESSONS;
         if (lastDate && firstDate) {
-            const dateDiff = Math.ceil((lastDate - firstDate) / (1000 * 60 * 60 * 24 * 365));
-            maxLessons = Math.min(maxLessons, dateDiff + 7);
+            const dateDiff = Math.ceil((lastDate - firstDate) / (1000 * 60 * 60 * 24));
+            console.log(dateDiff)
+            maxLessons = Math.min(maxLessons, dateDiff + 1);
         } else {
             maxLessons = Math.min(maxLessons, MAX_DAYS);
         }
@@ -167,11 +168,11 @@ class LessonCotroller {
             let currentDate = new Date(firstDate);
             let lessonCounter = 0;
         
-            while (lessonCounter < numLessons) {
+            while (lessonCounter < numLessons / 7) {
                 const day = currentDate.getDay();
                 const dayNames = [0, 1, 2, 3, 4, 5, 6];
                 let currentDay = dayNames[day]
-                console.log(days)
+
                 if (days.includes(currentDay)) {
                 const lesson = {
                     teacherIds: teacherIds,
